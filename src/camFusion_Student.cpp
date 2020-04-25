@@ -148,7 +148,49 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {
-    // ...
+    // compute mean distances from lidar points
+    double meanXPrev = 0.0, meanXCurr = 0.0;
+    for (auto lidarPoint : lidarPointsPrev)
+    {
+        meanXPrev += lidarPoint.x;
+    }
+    meanXPrev = meanXPrev/lidarPointsPrev.size();
+    // cout << "meanXPrev = " << meanXPrev << endl;
+
+    for (auto lidarPoint : lidarPointsCurr)
+    {
+        meanXCurr += lidarPoint.x;
+    }
+    meanXCurr = meanXCurr/lidarPointsPrev.size();
+    // cout << "meanXCurr = " << meanXCurr << endl;
+
+    // find closest distance to Lidar points within ego lane
+    double minXPrev = 1e9, minXCurr = 1e9;
+    double threshold = 0.8;     // threshold to reject outliers
+
+    for (auto it = lidarPointsPrev.begin(); it != lidarPointsPrev.end(); ++it)
+    {   
+        if (it->x > threshold*meanXPrev)
+            minXPrev = minXPrev > it->x ? it->x : minXPrev;          
+    }
+    // cout << "minXPrev" << minXPrev << endl;
+
+    for (auto it = lidarPointsCurr.begin(); it != lidarPointsCurr.end(); ++it)
+    {   
+        if (it->x > threshold*meanXCurr)
+            minXCurr = minXCurr > it->x ? it->x : minXCurr;       
+    }
+    // cout << "minXCurr" << minXCurr << endl;
+    
+    // compute TTC from both measurements
+    if (minXCurr < minXPrev)
+        TTC = minXCurr / frameRate / (minXPrev - minXCurr);
+    else
+    {
+        TTC = -1;
+        cout << "No potential collision, preceding vehicle is running at higher speed!" << endl;
+    }
+    
 }
 
 bool isEnclosedInBoundingBox(int kptIdx, DataFrame &frame, int &matchBoundingBoxIdx)
