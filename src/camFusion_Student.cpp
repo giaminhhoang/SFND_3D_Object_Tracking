@@ -151,8 +151,52 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
     // ...
 }
 
+bool isEnclosedInBoundingBox(int kptIdx, DataFrame &frame, int &matchBoundingBoxIdx)
+{
+    cv::Point2f point = frame.keypoints.at(kptIdx).pt;
+
+    int count = 0;
+    for (auto it=frame.boundingBoxes.begin(); it!=frame.boundingBoxes.end(); ++it)
+    {
+        if (it->roi.contains(point))
+        {
+            ++count;
+            if (count > 1)
+            {
+                matchBoundingBoxIdx = -1;
+                return false;
+            }
+            matchBoundingBoxIdx = it - frame.boundingBoxes.begin();
+        }
+    }
+    return (count != 0);
+}
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
-    // ...
+    int matchBoundingBoxIdxPrev = -1, matchBoundingBoxIdxCurr = -1;
+    int ncols = prevFrame.boundingBoxes.size();
+    int nrows = currFrame.boundingBoxes.size();
+    vector<vector<int> > match2DMatrix(ncols, vector<int> (nrows,0)); 
+
+    for (auto it=matches.begin(); it!=matches.end(); ++it)
+    {
+        if (isEnclosedInBoundingBox(it->queryIdx, prevFrame, matchBoundingBoxIdxPrev) && 
+            isEnclosedInBoundingBox(it->trainIdx, currFrame, matchBoundingBoxIdxCurr))
+        {
+            ++match2DMatrix.at(matchBoundingBoxIdxPrev).at(matchBoundingBoxIdxCurr);
+        }
+    }
+
+    for (auto it = match2DMatrix.begin(); it != match2DMatrix.end(); ++it)
+    {
+        int maxOccurrence = *std::max_element((*it).begin(), (*it).end());
+        if (maxOccurrence == 0)
+        {
+            continue;
+        } 
+        int maxOccurrenceIdx = std::max_element((*it).begin(),(*it).end()) - (*it).begin();
+        matchBoundingBoxIdxPrev = it - match2DMatrix.begin();
+        bbBestMatches[prevFrame.boundingBoxes.at(matchBoundingBoxIdxPrev).boxID] = currFrame.boundingBoxes.at(maxOccurrenceIdx).boxID;
+    }
 }
