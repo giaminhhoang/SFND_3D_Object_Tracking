@@ -146,9 +146,6 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
             double distance = cv::norm(kptCurr.pt - kptPrev.pt);
             distances.push_back(distance);
             distanceSum += distance;
-
-            boundingBox.keypoints.push_back(kptCurr);
-            boundingBox.kptMatches.push_back(*it);
         }
     }
     /*
@@ -171,7 +168,11 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
     */
     // cout << "distanceStd = " << distanceStd << endl;
 
-    double distanceScaleFactor = 1.2;
+    std::sort(distances.begin(), distances.end());
+    long medIndex = floor(distances.size() / 2.0);
+    double distanceMed = distances.size() % 2 == 0 ? (distances[medIndex - 1] + distances[medIndex]) / 2.0 : distances[medIndex]; // median distance
+
+    double distanceScaleFactor = 2.0;
     for (auto it=kptMatches.begin(); it != kptMatches.end(); ++it)
     {
         auto kptCurr = kptsCurr.at(it->trainIdx); 
@@ -182,12 +183,14 @@ void clusterKptMatchesWithROI(BoundingBox &boundingBox, std::vector<cv::KeyPoint
             
             //if (fabs(cv::norm(kptCurr.pt - kptPrev.pt) - distanceMean) < 3*distanceStd)
             if (cv::norm(kptCurr.pt - kptPrev.pt) < distanceMean*distanceScaleFactor)
+            //if (cv::norm(kptCurr.pt - kptPrev.pt) < distanceMed*distanceScaleFactor)
             {
                 boundingBox.keypoints.push_back(kptCurr);
                 boundingBox.kptMatches.push_back(*it);
             }
         }
     }
+    //cout << "Number of matches in ROI = " << boundingBox.kptMatches.size() << endl;
 }
 
 
