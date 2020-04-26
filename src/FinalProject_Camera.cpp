@@ -83,8 +83,8 @@ int main(int argc, const char *argv[])
     vector<string> listDescriptors = {"BRISK", "BRIEF", "ORB", "FREAK", "AKAZE", "SIFT"};
 
     // test
-    //listDetectors = {"HARRIS"};
-    //listDescriptors = {"BRISK"};
+    listDetectors = {"FAST"};
+    listDescriptors = {"BRIEF"};
 
     for (auto det=listDetectors.begin(); det!=listDetectors.end(); det++)
     {
@@ -315,7 +315,7 @@ int main(int argc, const char *argv[])
                             noMatchesInROI = currBB->kptMatches.size();
                             //// EOF STUDENT ASSIGNMENT
 
-                            bVis = false;
+                            bVis = true;
                             if (bVis)
                             {
                                 cv::Mat visImg = (dataBuffer.end() - 1)->cameraImg.clone();
